@@ -12,8 +12,10 @@ export function parseWithSchema<T>(json: string, schema: ZodSchema<T>): T {
     const zodParsed = schema.parse(jsonParsed);
     return zodParsed;
   } catch (error) {
-    if (error instanceof ZodError) {
-      throw new Error(error.issues.map(prettyErrorMessage).join("\n"));
+    if ((error as ZodError)["issues"] !== undefined) {
+      throw new Error(
+        (error as ZodError).issues.map(prettyErrorMessage).join("\n")
+      );
     } else {
       throw error;
     }

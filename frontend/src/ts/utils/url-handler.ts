@@ -132,18 +132,18 @@ export function loadCustomThemeFromUrl(getOverride?: string): void {
   }
 }
 
-const testSettingsSchema = z.tuple([
-  ModeSchema.nullable(), // Replaces z.union([ModeSchema, z.null()])
+const TestSettingsSchema = z.tuple([
+  ModeSchema.nullable(),
   Mode2Schema.nullable(),
   CustomText.CustomTextDataSchema.nullable(),
-  z.boolean().nullable(),
-  z.boolean().nullable(),
-  z.string().nullable(),
+  z.boolean().nullable(), //punctuation
+  z.boolean().nullable(), //numbers
+  z.string().nullable(), //language
   DifficultySchema.nullable(),
-  z.string().nullable(),
+  z.string().nullable(), //funbox
 ]);
 
-type SharedTestSettings = z.infer<typeof testSettingsSchema>;
+type SharedTestSettings = z.infer<typeof TestSettingsSchema>;
 
 export function loadTestSettingsFromUrl(getOverride?: string): void {
   const getValue = Misc.findGetParameter("testSettings", getOverride);
@@ -152,14 +152,10 @@ export function loadTestSettingsFromUrl(getOverride?: string): void {
   let de: SharedTestSettings;
   try {
     const decompressed = decompressFromURI(getValue) ?? "";
-    const parsed = parseJsonWithSchema(decompressed, testSettingsSchema);
-
-    // Ensure the second element (index 1) is a string or null
-    if (parsed[1] !== null && typeof parsed[1] === "number") {
-      parsed[1] = parsed[1].toString(); // Convert number to string
-    }
-
-    de = parsed as SharedTestSettings; // Assign after refinement
+    de = parseJsonWithSchema(
+      decompressed,
+      TestSettingsSchema
+    ) as SharedTestSettings;
   } catch (e) {
     console.error("Failed to parse test settings:", e);
     Notifications.add(
@@ -176,12 +172,13 @@ export function loadTestSettingsFromUrl(getOverride?: string): void {
     applied["mode"] = de[0];
   }
 
+  const mode = de[0] ?? Config.mode;
   if (de[1] !== null) {
-    if (Config.mode === "time") {
+    if (mode === "time") {
       UpdateConfig.setTimeConfig(parseInt(de[1], 10), true);
-    } else if (Config.mode === "words") {
+    } else if (mode === "words") {
       UpdateConfig.setWordCount(parseInt(de[1], 10), true);
-    } else if (Config.mode === "quote") {
+    } else if (mode === "quote") {
       UpdateConfig.setQuoteLength(-2, false);
       TestState.setSelectedQuoteId(parseInt(de[1], 10));
       ManualRestart.set();
